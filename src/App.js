@@ -8,9 +8,12 @@ const baseUrl = "http://95.164.44.248:8080";
 
 function App() {
   const [trainFile, setTrainFile] = useState(null);
+  const [topicsFile, setTopicsFile] = useState(null);
   const [indexes, setIndexes] = useState([]);
   const [currentIndex, setCurrentIndex] = useState("");
   const [currentPrompt, setCurrentPrompt] = useState("");
+  const [newIndex, setNewIndex] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const fetchPrompt = (index) => {
     const formData = new FormData();
@@ -51,11 +54,43 @@ function App() {
       .then((response) => response.json())
       .then(() => alert("Succed"));
   };
+
+  const addIndex = () => {
+    const formData = new FormData();
+    formData.append("index", newIndex);
+    formData.append("prompt", currentPrompt);
+    fetch(`${baseUrl}/save-prompt`, {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .then(() => {
+        alert("Succed");
+        setIndexes([...indexes, newIndex]);
+      });
+  };
+
+  const generateArticle = () => {
+    setIsGenerating(true);
+    const formData = new FormData();
+    formData.append("file", topicsFile);
+    formData.append("index", currentIndex);
+    fetch(`${baseUrl}/generate-article`, {
+      method: "POST",
+      body: formData,
+    }).then(async (response) => {
+      const result = await response.json();
+      alert("Succeed");
+      setIsGenerating(false);
+      console.log(result);
+    });
+  };
   useEffect(() => {
     fetch(`${baseUrl}/get-all-prompts`)
       .then((response) => response.json())
       .then((data) => {
         setIndexes(data);
+        setCurrentIndex(data[0]);
         fetchPrompt(data[0]);
       });
   }, []);
@@ -101,6 +136,22 @@ function App() {
           </FormGroup>
           <FormGroup row>
             <Label sm={1} for="train_file" style={{ textAlign: "right" }}>
+              New Index
+            </Label>
+            <Col sm={6}>
+              <Input
+                name="new_index"
+                id="new_index"
+                value={newIndex}
+                onChange={(e) => setNewIndex(e.target.value)}
+              />
+            </Col>
+            <Col sm={2}>
+              <Button onClick={addIndex}>Add New Index</Button>
+            </Col>
+          </FormGroup>
+          <FormGroup row>
+            <Label sm={1} for="train_file" style={{ textAlign: "right" }}>
               Choose Train File
             </Label>
             <Col sm={6}>
@@ -114,6 +165,26 @@ function App() {
             {trainFile && (
               <Col sm={2}>
                 <Button onClick={uploadTrainFile}>Upload Train Data</Button>
+              </Col>
+            )}
+          </FormGroup>
+          <FormGroup row>
+            <Label sm={1} for="train_file" style={{ textAlign: "right" }}>
+              Choose Topics Files
+            </Label>
+            <Col sm={6}>
+              <Input
+                id="topic_file"
+                name="topic_file"
+                type="file"
+                onChange={(e) => setTopicsFile(e.target.files[0])}
+              />
+            </Col>
+            {topicsFile && (
+              <Col sm={2}>
+                <Button onClick={generateArticle} disabled={isGenerating}>
+                  Generate Article
+                </Button>
               </Col>
             )}
           </FormGroup>
