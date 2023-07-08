@@ -1,10 +1,9 @@
 import "./App.css";
 import { Form, FormGroup, Label, Input, Button, Col } from "reactstrap";
 import { useEffect, useState } from "react";
-import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-const baseUrl = "http://95.164.44.248:8080";
+const baseUrl = "https://article-generation-backend-zuc5u.ondigitalocean.app";
 
 function App() {
   const [trainFile, setTrainFile] = useState(null);
@@ -13,7 +12,9 @@ function App() {
   const [currentIndex, setCurrentIndex] = useState("");
   const [currentPrompt, setCurrentPrompt] = useState("");
   const [newIndex, setNewIndex] = useState("");
+  const [isTraining, setIsTraining] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingQuestion, setIsGeneratingQuestion] = useState(false);
 
   const fetchPrompt = (index) => {
     const formData = new FormData();
@@ -26,17 +27,24 @@ function App() {
       .then((result) => setCurrentPrompt(result));
   };
   const uploadTrainFile = () => {
+    setIsTraining(true);
     const formData = new FormData();
     formData.append("file", trainFile);
     formData.append("index", currentIndex);
     fetch(`${baseUrl}/train-data`, {
       method: "POST",
       body: formData,
-    }).then(async (response) => {
-      const result = await response.json();
-      alert("Succeed");
-      console.log(result);
-    });
+    })
+      .then(async (response) => {
+        setIsTraining(false);
+        const result = await response.json();
+        alert("Succeed");
+        console.log(result);
+      })
+      .catch((error) => {
+        alert("failed");
+        setIsTraining(false);
+      });
   };
   const handleIndexChange = (e) => {
     setCurrentIndex(e.target.value);
@@ -78,12 +86,37 @@ function App() {
     fetch(`${baseUrl}/generate-article`, {
       method: "POST",
       body: formData,
-    }).then(async (response) => {
-      const result = await response.json();
-      alert("Succeed");
-      setIsGenerating(false);
-      console.log(result);
-    });
+    })
+      .then(async (response) => {
+        const result = await response.json();
+        alert("Succeed");
+        setIsGenerating(false);
+        console.log(result);
+      })
+      .catch((error) => {
+        alert("failed");
+        console.log(error);
+        setIsGenerating(false);
+      });
+  };
+  const generateQuestion = () => {
+    setIsGeneratingQuestion(true);
+    const formData = new FormData();
+    formData.append("file", trainFile);
+    fetch(`${baseUrl}/generate-question`, {
+      method: "POST",
+      body: formData,
+    })
+      .then(async (response) => {
+        const result = await response.json();
+        alert("Succeed");
+        setIsGeneratingQuestion(false);
+      })
+      .catch((error) => {
+        alert("failed");
+        console.log(error);
+        setIsGeneratingQuestion(false);
+      });
   };
   useEffect(() => {
     fetch(`${baseUrl}/get-all-prompts`)
@@ -164,7 +197,19 @@ function App() {
             </Col>
             {trainFile && (
               <Col sm={2}>
-                <Button onClick={uploadTrainFile}>Upload Train Data</Button>
+                <Button onClick={uploadTrainFile} disabled={isTraining}>
+                  Upload Train Data
+                </Button>
+              </Col>
+            )}
+            {trainFile && trainFile.name.endsWith(".pdf") && (
+              <Col sm={2}>
+                <Button
+                  onClick={generateQuestion}
+                  disabled={isGeneratingQuestion}
+                >
+                  Generate Question
+                </Button>
               </Col>
             )}
           </FormGroup>
